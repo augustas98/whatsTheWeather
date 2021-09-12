@@ -1,7 +1,72 @@
 ﻿@page "/"
+@using whatsTheWeather.Shared.Models
+@inject HttpClient Http
 
-<h1>Hello, world!</h1>
+<h1>Weather forecast</h1>
 
-Welcome to your new app.
+<label for="cityNameTextArea">City name:</label>
+<input @bind=@cityNameInput style="width:15%; height:25px" type="text" id="cityNameTextArea">
+<button class="btn btn-primary" @onclick="@(async () => await SetWeatherForecast(cityNameInput))">Click me</button>
 
-<SurveyPrompt Title="How is Blazor working for you?" />
+@if (message != null)
+{
+    <br />
+    <label>@message</label>
+}
+
+@if (forecasts.Count() > 0)
+{
+    message = "";
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>City</th>
+                <th>Temperature °C</th>
+                <th>Wind</th>
+                <th>Humidity</th>
+                <th>Summary</th>
+            </tr>
+        </thead>
+        @foreach (var forecast in forecasts)
+        {
+            <tbody>
+                <tr>
+                    <td>@forecast.Name</td>
+                    <td>@forecast.Main.Temperature</td>
+                    <td>@forecast.Wind.Speed m/s</td>
+                    <td>@forecast.Main.Humidity</td>
+                    <td>@forecast.Weather.Select(f => f.Main).FirstOrDefault()</td>
+                </tr>
+            </tbody>
+        }
+    </table>
+}
+
+@code {
+    private string cityNameInput;
+    private string message;
+    private List<WeatherForecast> forecasts = new List<WeatherForecast>();
+
+    private async Task SetWeatherForecast(string cityName)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(cityName))
+            {
+                return;
+            }
+
+            var forecast = await Http.GetFromJsonAsync<WeatherForecast>($"weatherForecast/cityName/{cityNameInput}");
+
+            if (forecast != null)
+            {
+                forecasts.Add(forecast);
+            }
+        }
+        catch (Exception ex)
+        {
+            message = $"Oops. Couldn't find any forecasts for the city: {cityName}. Check your spelling and try again.";
+        }
+    }
+}
